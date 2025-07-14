@@ -1,0 +1,94 @@
+! APARTMENT DEMAND PROBLEM
+! We have a hotel with J rooms and I booking requests that we can accept or deny.
+! We want to find the best combination of accepted requests to maximize occupancy.
+
+model ModelName
+  uses "mmxprs"
+
+! Sets and inputs
+declarations
+I = 1..5                      ! number of requests
+RT: array(I) of integer       ! reservation time of request i
+LOS: array(I) of integer      ! length of stay of request i
+LT: array(I) of integer       ! lead time of request i
+SST: array(I) of integer      ! service start time of request i
+J = 1..2                      ! rooms
+T = 1..50                     ! days
+end-declarations
+
+LOS(1) := 4
+LOS(2) := 6
+LOS(3) := 1
+LOS(4) := 7
+LOS(5) := 15
+RT(1) := 0; RT(2) := 3; RT(3) := 14; RT(4) := 8; RT(5) := 10
+LT(1) := 23; LT(2) := 14; LT(3) := 4; LT(4) := 8; LT(5) := 5
+
+
+forall(i in I)do
+  SST(i) := RT(i) + LT(i)
+end-do
+
+declarations
+	x: array(I) of mpvar
+	y: array(I, J) of mpvar
+	z: array(I, J, T) of mpvar
+	obj: mpvar
+end-declarations
+
+
+forall(i in I)do
+x(i) is_binary
+end-do
+
+forall(i in I)do
+forall(j in J)do
+y(i,j) is_binary
+end-do
+end-do
+
+! Each request can be assigned to only one room
+forall(i in I)do
+sum(j in J)y(i,j) = x(i)
+end-do
+
+! All days until LOS must be occupied
+forall(i in I,j in J)do
+  forall(t in 0..LOS(i)-1)do
+    z(i,j,SST(i)+t) = y(i,j)
+  end-do
+end-do
+
+! A room can host only one request
+forall(j in J,t in T)do
+  sum(i in I)z(i,j,t) <= 1
+end-do
+
+obj = sum(i in I)x(i)*LOS(i)
+maximize(obj)
+
+
+writeln("Begin running model")
+
+
+writeln("OBJ: ",getsol(obj))
+forall(i in I)do
+writeln("Scelta richiesta ", i, " = ",getsol(x(i)))
+end-do
+
+writeln
+
+forall(i in I,j in J)do
+writeln("Scelta richiesta e stanza", i, j, " = ",getsol(y(i,j)))
+end-do
+
+writeln
+
+forall(i in I,j in J, t in 10..35)do
+writeln("Scelta richiesta e stanza ", i,",", j, ",", t, " = ",getsol(z(i,j,t)))
+end-do
+
+
+writeln("End running model")
+
+end-model

@@ -1,0 +1,122 @@
+model ModelName
+uses "mmxprs"; !gain access to the Xpress-Optimizer solver
+
+
+!sample declarations section
+declarations
+N=200
+P=5
+L=10
+!doctors=10
+xc: array(range) of real
+yc: array(range) of real
+xf: array(range) of real
+yf: array(range) of real
+d: array(range,range) of real
+medie: array(range) of real
+C=4 ! Ogni dottore può vaccinare 4 pazienti, 40 per ogni centro vaccinazione
+scenari: array(1..5,1..10) of real
+casuale: real
+end-declarations
+
+setrandseed(15)
+
+forall(i in 1..5)do
+	forall(j in 1..10)do
+		scenari(i,j):=10
+		forall(di in 1..10)do
+			casuale:=random
+			if casuale >0.9 then
+				scenari(i,j):=scenari(i,j)-1
+			end-if
+		end-do
+	end-do
+end-do
+!writeln(scenari)
+
+
+forall(i in 1..N)do
+xc(i):=random*10
+yc(i):=random*10
+end-do
+
+forall(j in 1..L)do
+xf(j):=random*10
+yf(j):=random*10
+end-do
+
+setrandseed(8)
+
+forall(i in 1..N,j in 1..L)do
+d(i,j):=sqrt((xc(i)-xf(j))^2+(yc(i)-yf(j))^2)
+end-do
+
+
+declarations
+	y: array(1..L) of mpvar !location variables example: [1,0,0,1,0,1,1,0,0,1]
+	x: array(1..N,1..L) of mpvar !assignment variables
+	obj: mpvar
+end-declarations
+
+forall(j in 1..L)do
+y(j) is_binary
+end-do
+
+forall(j in 1..L)do
+forall(i in 1..N)do
+x(i,j) is_binary
+end-do
+end-do
+
+!forall(s in 1..5, j in 1..L)do
+!	sum(i in 1..N)x(i,j)=C*scenari(s,j)*(1/10)*y(j)
+!	writeln(getsol(y(j)))
+!end-do
+
+
+forall(s in 1..5,j in 1..L)do
+sum(i in 1..N)x(i,j)<=C*y(j)*scenari(s,j)
+end-do
+
+forall(i in 1..N)do
+sum(j in 1..L)x(i,j)<=1
+end-do
+
+sum(j in 1..L)y(j)=P
+
+!obj=sum(i in 1..N,j in 1..L)d(i,j)*x(i,j)
+obj = sum(i in 1..N,j in 1..L)x(i,j)
+
+
+!minimize(obj)
+maximize(obj)
+
+somma:=sum(i in 1..N,j in 1..L)getsol(x(i,j))
+writeln(somma)
+
+writeln("Begin running model")
+writeln("OBJ: ",getsol(obj))
+writeln("End running model")
+!forall(i in 1..N,j in 1..L)do
+!writeln(getsol(x(i,j)))
+!writeln("")
+!end-do
+
+forall(j in 1..L)do
+writeln("Scelta centro ", j, " = ",getsol(y(j)))
+end-do
+
+
+forall(j in 1..10)do
+medie(j):=sum(i in 1..5)scenari(i,j)/5
+minimo(j):=min(i in 1..5)scenari(i,j)
+write("Centro ")
+write(j, " [")
+forall(i in 1..5)do
+write(scenari(i,j), " ")
+write("")
+end-do
+writeln("] ", "media = ", medie(j), " min = ", minimo(j))
+end-do
+end-model
+

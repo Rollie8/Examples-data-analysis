@@ -1,2 +1,2 @@
 # Examples-data-analysis
-Exaples of Python, R, Matlab and Mosel files for data analysis
+This repository contains examples of data analysis projects developed during my university courses.
